@@ -3,23 +3,50 @@ Query rainfall data by weather API, sent Line messages if status is changed.
 
 ```mermaid
 graph TD
-    A[Task Scheduler<br>Every 10 min] --> B{Fetch API}
-    B -- Success --> O[Reset Error Counter]
-    O --> C[Parse Rainfall]
-    B -- Fail --> D[Retry/Log errors]
-    D --> E{Retry with exponential backoff}
-    E -- Success --> C
-    E -- Fail --> G[Log Critical Error]
-    G --> M[Count 5 times]
-    M --> N[Send Line Message System Alert]
-    N --> Z
-    C --> F[Load Previous State]
-    F --> H[Compute New State]
-    H -- State Changed --> I[Send Line Message Rain Alert]
-    H -- State No Change --> Z[END]
-    I --> J{Line Fail?}
-    J -- NO --> L[Persist New State]
-    J -- YES --> K[Log Critical Error]
+    A[User enter station name] --> B{Is station name valid?}
+
+    B -- Yes --> C[Fetch data from API]
+    B -- No --> A
+
+    C --> D{Fetch successful?}
+
+    D -- Yes --> E[Reset error counter]
+    E --> F[Parse API response]
+
+    D -- No --> G[Retry and log error]
+    G --> H{Retry with exponential backoff}
+
+    H -- Yes --> F
+    H -- No --> I[Log critical error]
+    I --> J[Increment failure count]
+
+    J --> K{Reached max retries?}
+    K -- Yes --> L[Send LINE system alert]
+    K -- No --> Z[End]
+
+    F --> M[Load previous state]
+    M --> N[Compute new state]
+
+    N --> O{State changed?}
+
+    O -- Yes --> P[Send LINE rain alert]
+    O -- No --> Z
+
+    P --> Q{LINE send successful?}
+
+    Q -- Yes --> R[Persist new state]
+    Q -- No --> S[Log critical error]
+
+    R --> Z
+    S --> Z
     L --> Z
-    K --> Z
+    
 ```
+This program parses weather API data and use Line message to notify user the weather state is changed significantly.
+
+
+User enter station name:
+    - search weather station, start parsing weather data.
+    - if station didn't exist, ask user to input valid station name.
+Fetch data from API:
+    - 
